@@ -47,16 +47,21 @@ func initTables() error {
 }
 
 func checkForAutorization(r *http.Request, admin bool) error {
-	password := r.Header.Get("password")
-	login := r.Header.Get("login")
+	user, pass, ok := r.BasicAuth()
+	if !ok {
+		return fmt.Errorf("Not authorized")
+	}
+
 	var id int
-	sqlQuery := fmt.Sprintf("SELECT id FROM Users WHERE login = $1 AND password = $2")
+	sqlQuery := "SELECT id FROM Users WHERE login = $1 AND password = $2"
 	if admin {
 		sqlQuery += " AND admin = true"
 	}
-	err := conn.QueryRow(sqlQuery, login, password).Scan(&id)
+
+	err := conn.QueryRow(sqlQuery, user, pass).Scan(&id)
 	if err != nil {
 		return err
 	}
+
 	return nil
 }
