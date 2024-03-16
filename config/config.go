@@ -1,11 +1,15 @@
-package main
+package config
 
 import (
 	"errors"
 	"github.com/jackc/pgx"
 	"github.com/pelletier/go-toml"
+	"log/slog"
 	"os"
 )
+
+var Conn pgx.ConnConfig
+var Server ServerConfig
 
 type ServerConfig struct {
 	Host string
@@ -15,11 +19,11 @@ type ServerConfig struct {
 func loadConfig(Path string) (pgx.ConnConfig, ServerConfig, error) {
 	content, err := os.ReadFile(Path)
 	if err != nil {
-		return pgx.ConnConfig{}, ServerConfig{}, errors.New("ошибка при открытии файла конфигурации")
+		return pgx.ConnConfig{}, ServerConfig{}, errors.New("failed to read config: " + err.Error())
 	}
 	config, err := toml.Load(string(content))
 	if err != nil {
-		return pgx.ConnConfig{}, ServerConfig{}, errors.New("ошибка чтении файла конфигурации")
+		return pgx.ConnConfig{}, ServerConfig{}, errors.New("failed to load config: " + err.Error())
 	}
 	return pgx.ConnConfig{
 			Host:     config.Get("database.host").(string),
@@ -31,4 +35,15 @@ func loadConfig(Path string) (pgx.ConnConfig, ServerConfig, error) {
 			Host: config.Get("server.host").(string),
 			Port: uint16(config.Get("server.port").(int64)),
 		}, nil
+}
+
+func init() {
+	config, configServer, err := loadConfig("config.toml")
+	if err != nil {
+		slog.Error("Failed to load config: ", "error", err)
+		return
+	}
+
+	Conn = config
+	Server = configServer
 }
