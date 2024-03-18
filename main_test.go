@@ -12,6 +12,8 @@ import (
 	"testing"
 )
 
+//use compileboy as usual user and splatjov as admin
+
 func TestActor(t *testing.T) {
 	req, err := http.NewRequest("GET", "/", nil)
 	if err != nil {
