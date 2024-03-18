@@ -15,6 +15,7 @@ services:
       SERVER_PORT: ${SERVER_PORT}
     volumes:
       - ./logs:/root/logs
+    restart: always
 
   db:
     image: postgres:latest
@@ -30,6 +31,7 @@ services:
         POSTGRES_INSIDE_PORT: ${POSTGRES_INSIDE_PORT}
         POSTGRES_OUTSIDE_PORT: ${POSTGRES_OUTSIDE_PORT}
         SERVER_PORT: ${SERVER_PORT}
+    restart: always
 
 volumes:
   pgdata:
