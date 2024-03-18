@@ -1,0 +1,345 @@
+components:
+  schemas:
+    Actor:
+      properties:
+        birth_date:
+          $ref: '#/components/schemas/Date'
+          type: object
+        films:
+          items:
+            type: integer
+          type: array
+        gender:
+          type: string
+        id:
+          type: integer
+        name:
+          type: string
+      type: object
+    Date:
+      properties: {}
+      type: object
+    Film:
+      properties:
+        actors:
+          items:
+            type: integer
+          type: array
+        description:
+          type: string
+        id:
+          type: integer
+        name:
+          type: string
+        rating:
+          type: integer
+        release_date:
+          $ref: '#/components/schemas/Date'
+          type: object
+      type: object
+    structs.Actor:
+      properties:
+        birth_date:
+          $ref: '#/components/schemas/Date'
+          type: object
+        films:
+          items:
+            type: integer
+          type: array
+        gender:
+          type: string
+        id:
+          type: integer
+        name:
+          type: string
+      type: object
+    structs.Film:
+      properties:
+        actors:
+          items:
+            type: integer
+          type: array
+        description:
+          type: string
+        id:
+          type: integer
+        name:
+          type: string
+        rating:
+          type: integer
+        release_date:
+          $ref: '#/components/schemas/Date'
+          type: object
+      type: object
+info:
+  description: This is a simple API for a film collection
+  title: FilmCollection API
+  version: "1.0"
+openapi: 3.0.0
+paths:
+  /add_actor:
+    post:
+      description: ' Add actor to database'
+      parameters:
+      - description: Basic auth for admin
+        in: header
+        name: Authorization
+        required: true
+        schema:
+          description: Basic auth for admin
+          format: string
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Actor'
+        required: true
+      responses:
+        "200":
+          description: actor added
+        "400":
+          description: no request body
+  /add_film:
+    post:
+      description: ' Add film to database'
+      parameters:
+      - description: Basic auth for admin
+        in: header
+        name: Authorization
+        required: true
+        schema:
+          description: Basic auth for admin
+          format: string
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Film'
+        required: true
+      responses:
+        "200":
+          description: film added
+        "400":
+          description: no request body
+  /delete_actor:
+    post:
+      description: ' Delete actor by id'
+      parameters:
+      - description: Actor id
+        in: query
+        name: id
+        required: true
+        schema:
+          description: Actor id
+          format: int64
+          type: integer
+      - description: Basic auth for admin
+        in: header
+        name: Authorization
+        required: true
+        schema:
+          description: Basic auth for admin
+          format: string
+          type: string
+      responses:
+        "200":
+          description: actor deleted
+        "400":
+          description: invalid id format
+        "500":
+          description: error deleting actor
+  /delete_film:
+    post:
+      description: ' Delete film by id'
+      parameters:
+      - description: Film id
+        in: query
+        name: id
+        required: true
+        schema:
+          description: Film id
+          format: int64
+          type: integer
+      - description: Basic auth for admin
+        in: header
+        name: Authorization
+        required: true
+        schema:
+          description: Basic auth for admin
+          format: string
+          type: string
+      responses:
+        "200":
+          description: film deleted
+        "400":
+          description: invalid id format
+        "500":
+          description: error deleting film
+  /get_actor:
+    get:
+      description: ' Get actor by id'
+      parameters:
+      - description: Actor id
+        in: query
+        name: id
+        required: true
+        schema:
+          description: Actor id
+          format: int64
+          type: integer
+      - description: Basic auth for user
+        in: header
+        name: Authorization
+        required: true
+        schema:
+          description: Basic auth for user
+          format: string
+          type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Actor'
+          description: ""
+        "400":
+          description: invalid id format
+        "500":
+          description: error reading actor
+  /get_film:
+    get:
+      description: ' Get film by id'
+      parameters:
+      - description: Film id
+        in: query
+        name: id
+        required: true
+        schema:
+          description: Film id
+          format: int64
+          type: integer
+      - description: Basic auth for user
+        in: header
+        name: Authorization
+        required: true
+        schema:
+          description: Basic auth for user
+          format: string
+          type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Film'
+          description: ""
+        "400":
+          description: invalid id format
+        "500":
+          description: error reading film
+  /get_films:
+    get:
+      description: ' Get films by keyword'
+      parameters:
+      - description: Keyword to search for
+        in: query
+        name: keyword
+        schema:
+          description: Keyword to search for
+          format: string
+          type: string
+      - description: Limit of films to return
+        in: query
+        name: limit
+        schema:
+          description: Limit of films to return
+          format: int64
+          type: integer
+      - description: Reverse order
+        in: query
+        name: reverse
+        schema:
+          description: Reverse order
+          format: boolean
+          type: boolean
+      - description: Parameter to sort by
+        in: query
+        name: sort_parameter
+        schema:
+          description: Parameter to sort by
+          format: string
+          type: string
+      - description: Basic auth for user
+        in: header
+        name: Authorization
+        required: true
+        schema:
+          description: Basic auth for user
+          format: string
+          type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Film'
+          description: ""
+        "400":
+          description: invalid sort_parameter format
+        "500":
+          description: error reading films
+  /update_actor:
+    post:
+      description: ' Update actor by id'
+      parameters:
+      - description: Basic auth for admin
+        in: header
+        name: Authorization
+        required: true
+        schema:
+          description: Basic auth for admin
+          format: string
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Actor'
+        required: true
+      responses:
+        "200":
+          description: actor updated
+        "400":
+          description: no request body
+        "500":
+          description: error updating actor
+  /update_film:
+    post:
+      description: ' Update film by id'
+      parameters:
+      - description: Basic auth for admin
+        in: header
+        name: Authorization
+        required: true
+        schema:
+          description: Basic auth for admin
+          format: string
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Film'
+        required: true
+      responses:
+        "200":
+          description: film updated
+        "400":
+          description: film id not specified
+        "500":
+          description: error adding film
+servers:
+- description: Default Server URL
+  url: /

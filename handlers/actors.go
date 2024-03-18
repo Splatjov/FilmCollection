@@ -10,18 +10,30 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
-	"time"
 )
 
+// @Summary AddActor
+// @Description Add actor to database
+// @ID add-actor
+// @Accept  json
+// @Param actor body structs.Actor true "Actor object that needs to be added"
+// @Param Authorization header string true "Basic auth for admin"
+// @Success 200 "actor added"
+// @Failure 400 "no request body"
+// @Router /add_actor [post]
 func AddActor(w http.ResponseWriter, r *http.Request) {
-	err := db.CheckForAutorization(r, true)
-	if err != nil {
+	if r.Context().Value("admin") != true {
 		http.Error(w, "authorization error", http.StatusUnauthorized)
-		slog.Error("Authorization error: ", "error", err, "status", http.StatusUnauthorized)
+		slog.Error("Authorization error: ", "error", "not admin", "status", http.StatusUnauthorized)
+		return
+	}
+	if r.Body == nil {
+		http.Error(w, "no request body", http.StatusBadRequest)
+		slog.Error("No request body: ", "status", http.StatusBadRequest)
 		return
 	}
 	var actor structs.Actor
-	err = json.NewDecoder(r.Body).Decode(&actor)
+	err := json.NewDecoder(r.Body).Decode(&actor)
 	if err != nil {
 		http.Error(w, "error reading request body", http.StatusBadRequest)
 		slog.Error("Error reading request body: ", "error", err, "status", http.StatusBadRequest)
@@ -42,13 +54,16 @@ func AddActor(w http.ResponseWriter, r *http.Request) {
 	slog.Info("AddActor Actor added", "status", http.StatusOK)
 }
 
+// @Summary GetActor
+// @Description Get actor by id
+// @ID get-actor
+// @Param id query int true "Actor id"
+// @Param Authorization header string true "Basic auth for user"
+// @Success 200 {object} structs.Actor
+// @Failure 400 "invalid id format"
+// @Failure 500 "error reading actor"
+// @Router /get_actor [get]
 func GetActor(w http.ResponseWriter, r *http.Request) {
-	err := db.CheckForAutorization(r, false)
-	if err != nil {
-		http.Error(w, "authorization error", http.StatusUnauthorized)
-		slog.Error("Authorization error: ", "error", err, "status", http.StatusUnauthorized)
-		return
-	}
 	idString := r.URL.Query().Get("id")
 	id, err := strconv.Atoi(idString)
 	if err != nil {
@@ -72,16 +87,26 @@ func GetActor(w http.ResponseWriter, r *http.Request) {
 	slog.Info("GetActor Actor retrieved", "status", http.StatusOK)
 }
 
+// @Summary GetActors
+// @Description Get actors by keyword
+// @ID get-actors
+// @Param keyword query string false "Keyword to search by" default("")
+// @Param limit query int false "Limit of actors to return" default(10)
+// @Param reverse query bool false "Reverse order" default(true)
+// @Param sort_parameter query string false "Parameter to sort by" default("name")
+// @Param Authorization header string true "Basic auth for user"
+// @Success 200 {array} structs.Actor
+// @Failure 400 "invalid limit format"
+// @Failure 400 "invalid reverse format"
+// @Failure 400 "invalid sort_parameter format"
+// @Failure 500 "error reading actors"
+// @Router /get_actors [get]
+
 func GetActors(w http.ResponseWriter, r *http.Request) {
-	err := db.CheckForAutorization(r, false)
-	if err != nil {
-		http.Error(w, "authorization error", http.StatusUnauthorized)
-		slog.Error("Authorization error: ", "error", err, "status", http.StatusUnauthorized)
-		return
-	}
 	limitString := r.URL.Query().Get("limit")
 	keyword := r.URL.Query().Get("keyword")
 	limit := 10
+	var err error
 	if limitString != "" {
 		limit, err = strconv.Atoi(limitString)
 	}
@@ -121,20 +146,25 @@ func GetActors(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var actors []structs.Actor
+	defer rows.Close()
 	for rows.Next() {
 		var actor structs.Actor
-		var birthDate time.Time
 		err = rows.Scan(&actor.Id)
-		actor, err = db.GetActorByID(actor.Id)
 		if err != nil {
 			http.Error(w, "error reading actor", http.StatusInternalServerError)
-			slog.Error("GetActors", err, "error reading actor")
+			slog.Error("GetActors", "error reading actor", err)
 			return
 		}
-		actor.BirthDate = structs.Date{birthDate}
 		actors = append(actors, actor)
 	}
-	rows.Close()
+	for i := range actors {
+		actors[i], err = db.GetActorByID(actors[i].Id)
+		if err != nil {
+			http.Error(w, "error reading actor", http.StatusInternalServerError)
+			slog.Error("GetActors", "error reading actor", err)
+			return
+		}
+	}
 	w.Header().Set("Content-Type", "application/json")
 	err = json.NewEncoder(w).Encode(actors)
 	if err != nil {
@@ -145,15 +175,29 @@ func GetActors(w http.ResponseWriter, r *http.Request) {
 	slog.Info("GetActors Actors retrieved", "status", http.StatusOK)
 }
 
+// @Summary UpdateActor
+// @Description Update actor by id
+// @ID update-actor
+// @Accept  json
+// @Param actor body structs.Actor true "Actor object that needs to be updated"
+// @Param Authorization header string true "Basic auth for admin"
+// @Success 200 "actor updated"
+// @Failure 400 "no request body"
+// @Failure 500 "error updating actor"
+// @Router /update_actor [post]
 func UpdateActor(w http.ResponseWriter, r *http.Request) {
-	err := db.CheckForAutorization(r, true)
-	if err != nil {
+	if r.Context().Value("admin") != true {
 		http.Error(w, "authorization error", http.StatusUnauthorized)
-		slog.Error("Authorization error: ", "error", err, "status", http.StatusUnauthorized)
+		slog.Error("Authorization error: ", "error", "not admin", "status", http.StatusUnauthorized)
+		return
+	}
+	if r.Body == nil {
+		http.Error(w, "no request body", http.StatusBadRequest)
+		slog.Error("No request body: ", "status", http.StatusBadRequest)
 		return
 	}
 	var actor structs.Actor
-	err = json.NewDecoder(r.Body).Decode(&actor)
+	err := json.NewDecoder(r.Body).Decode(&actor)
 	if err != nil {
 		http.Error(w, "error reading request body", http.StatusBadRequest)
 		slog.Error("Error reading request body: ", "error", err, "status", http.StatusBadRequest)
@@ -189,13 +233,22 @@ func UpdateActor(w http.ResponseWriter, r *http.Request) {
 	slog.Info("UpdateActor Actor updated", "status", http.StatusOK)
 }
 
+// @Summary DeleteActor
+// @Description Delete actor by id
+// @ID delete-actor
+// @Param id query int true "Actor id"
+// @Param Authorization header string true "Basic auth for admin"
+// @Success 200 "actor deleted"
+// @Failure 400 "invalid id format"
+// @Failure 500 "error deleting actor"
+// @Router /delete_actor [post]
 func DeleteActor(w http.ResponseWriter, r *http.Request) {
-	err := db.CheckForAutorization(r, true)
-	if err != nil {
+	if r.Context().Value("admin") != true {
 		http.Error(w, "authorization error", http.StatusUnauthorized)
-		slog.Error("Authorization error: ", "error", err, "status", http.StatusUnauthorized)
+		slog.Error("Authorization error: ", "error", "not admin", "status", http.StatusUnauthorized)
 		return
 	}
+
 	idString := r.URL.Query().Get("id")
 	id, err := strconv.Atoi(idString)
 	if err != nil {

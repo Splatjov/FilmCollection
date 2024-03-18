@@ -13,15 +13,28 @@ import (
 	"time"
 )
 
+// @Summary AddFilm
+// @Description Add film to database
+// @ID add-film
+// @Accept  json
+// @Param film body structs.Film true "Film object that needs to be added"
+// @Param Authorization header string true "Basic auth for admin"
+// @Success 200 "film added"
+// @Failure 400 "no request body"
+// @Router /add_film [post]
 func AddFilm(w http.ResponseWriter, r *http.Request) {
-	err := db.CheckForAutorization(r, true)
-	if err != nil {
+	if r.Context().Value("admin") != true {
 		http.Error(w, "authorization error", http.StatusUnauthorized)
-		slog.Error("Authorization error: ", "error", err, "status", http.StatusUnauthorized)
+		slog.Error("Authorization error: ", "error", "not admin", "status", http.StatusUnauthorized)
 		return
 	}
 	var film structs.Film
-	err = json.NewDecoder(r.Body).Decode(&film)
+	if r.Body == nil {
+		http.Error(w, "no request body", http.StatusBadRequest)
+		slog.Error("No request body: ", "status", http.StatusBadRequest)
+		return
+	}
+	err := json.NewDecoder(r.Body).Decode(&film)
 	if err != nil {
 		http.Error(w, "error reading request body", http.StatusBadRequest)
 		slog.Error("Error reading request body: ", "error", err, "status", http.StatusBadRequest)
@@ -47,13 +60,16 @@ func AddFilm(w http.ResponseWriter, r *http.Request) {
 	slog.Info("AddFilm Film added", "status", http.StatusOK)
 }
 
+// @Summary GetFilm
+// @Description Get film by id
+// @ID get-film
+// @Param id query int true "Film id"
+// @Param Authorization header string true "Basic auth for user"
+// @Success 200 {object} structs.Film
+// @Failure 400 "invalid id format"
+// @Failure 500 "error reading film"
+// @Router /get_film [get]
 func GetFilm(w http.ResponseWriter, r *http.Request) {
-	err := db.CheckForAutorization(r, false)
-	if err != nil {
-		http.Error(w, "authorization error", http.StatusUnauthorized)
-		slog.Error("Authorization error: ", "error", err, "status", http.StatusUnauthorized)
-		return
-	}
 	idString := r.URL.Query().Get("id")
 	id, err := strconv.Atoi(idString)
 	if err != nil {
@@ -77,16 +93,25 @@ func GetFilm(w http.ResponseWriter, r *http.Request) {
 	slog.Info("GetFilm Film retrieved", "status", http.StatusOK)
 }
 
+// @Summary GetFilms
+// @Description Get films by keyword
+// @ID get-films
+// @Param keyword query string false "Keyword to search for"
+// @Param limit query int false "Limit of films to return" default(10)
+// @Param reverse query bool false "Reverse order" default(true)
+// @Param sort_parameter query string false "Parameter to sort by" default("rating")
+// @Param Authorization header string true "Basic auth for user"
+// @Success 200 {array} structs.Film
+// @Failure 400 "invalid limit format"
+// @Failure 400 "invalid reverse format"
+// @Failure 400 "invalid sort_parameter format"
+// @Failure 500 "error reading films"
+// @Router /get_films [get]
 func GetFilms(w http.ResponseWriter, r *http.Request) {
-	err := db.CheckForAutorization(r, false)
-	if err != nil {
-		http.Error(w, "authorization error", http.StatusUnauthorized)
-		slog.Error("Authorization error: ", "error", err, "status", http.StatusUnauthorized)
-		return
-	}
 	limitString := r.URL.Query().Get("limit")
 	keyword := r.URL.Query().Get("keyword")
 	limit := 10
+	var err error
 	if limitString != "" {
 		limit, err = strconv.Atoi(limitString)
 	}
@@ -126,6 +151,7 @@ func GetFilms(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var films []structs.Film
+	defer rows.Close()
 	for rows.Next() {
 		var film structs.Film
 		var releaseDate time.Time
@@ -138,7 +164,7 @@ func GetFilms(w http.ResponseWriter, r *http.Request) {
 		film.ReleaseDate = structs.Date{releaseDate}
 		films = append(films, film)
 	}
-	rows.Close()
+
 	w.Header().Set("Content-Type", "application/json")
 	err = json.NewEncoder(w).Encode(films)
 	if err != nil {
@@ -146,18 +172,30 @@ func GetFilms(w http.ResponseWriter, r *http.Request) {
 		slog.Error("Error writing response: ", "error", err, "status", http.StatusInternalServerError)
 		return
 	}
+
 	slog.Info("GetFilms Films retrieved", "status", http.StatusOK)
 }
 
+// @Summary UpdateFilm
+// @Description Update film by id
+// @ID update-film
+// @Accept  json
+// @Param film body structs.Film true "Film object that needs to be updated"
+// @Param Authorization header string true "Basic auth for admin"
+// @Success 200 "film updated"
+// @Failure 400 "error reading request body"
+// @Failure 400 "film id not specified"
+// @Failure 500 "error adding film"
+// @Router /update_film [post]
 func UpdateFilm(w http.ResponseWriter, r *http.Request) {
-	err := db.CheckForAutorization(r, true)
-	if err != nil {
+	if r.Context().Value("admin") != true {
 		http.Error(w, "authorization error", http.StatusUnauthorized)
-		slog.Error("Authorization error: ", "error", err, "status", http.StatusUnauthorized)
+		slog.Error("Authorization error: ", "error", "not admin", "status", http.StatusUnauthorized)
 		return
 	}
+
 	var film structs.Film
-	err = json.NewDecoder(r.Body).Decode(&film)
+	err := json.NewDecoder(r.Body).Decode(&film)
 	if err != nil {
 		http.Error(w, "error reading request body", http.StatusBadRequest)
 		slog.Error("Error reading request body: ", "error", err, "status", http.StatusBadRequest)
@@ -210,13 +248,22 @@ func UpdateFilm(w http.ResponseWriter, r *http.Request) {
 	slog.Info("UpdateFilm Film updated", "status", http.StatusOK)
 }
 
+// @Summary DeleteFilm
+// @Description Delete film by id
+// @ID delete-film
+// @Param id query int true "Film id"
+// @Param Authorization header string true "Basic auth for admin"
+// @Success 200 "film deleted"
+// @Failure 400 "invalid id format"
+// @Failure 500 "error deleting film"
+// @Router /delete_film [post]
 func DeleteFilm(w http.ResponseWriter, r *http.Request) {
-	err := db.CheckForAutorization(r, true)
-	if err != nil {
+	if r.Context().Value("admin") != true {
 		http.Error(w, "authorization error", http.StatusUnauthorized)
-		slog.Error("Authorization error: ", "error", err, "status", http.StatusUnauthorized)
+		slog.Error("Authorization error: ", "error", "not admin", "status", http.StatusUnauthorized)
 		return
 	}
+
 	idString := r.URL.Query().Get("id")
 	id, err := strconv.Atoi(idString)
 	if err != nil {

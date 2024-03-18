@@ -9,6 +9,9 @@ import (
 	"os"
 )
 
+// @title FilmCollection API
+// @version 1.0
+// @description This is a simple API for a film collection
 func main() {
 	file, err := os.OpenFile("app.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 	if err != nil {
@@ -19,6 +22,8 @@ func main() {
 	mux := http.NewServeMux()
 
 	fmt.Println("Все подключилось!")
+
 	handlers.InitHandlers(mux)
+
 	err = http.ListenAndServe(fmt.Sprintf("%s:%d", config.Server.Host, config.Server.Port), mux)
 }

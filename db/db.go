@@ -2,8 +2,6 @@ package db
 
 import (
 	"FilmCollection/structs"
-	"fmt"
-	"net/http"
 	"time"
 )
 
@@ -48,26 +46,6 @@ func initTables() error {
 	return nil
 }
 
-func CheckForAutorization(r *http.Request, admin bool) error {
-	user, pass, ok := r.BasicAuth()
-	if !ok {
-		return fmt.Errorf("Not authorized")
-	}
-
-	var id int
-	sqlQuery := "SELECT id FROM Users WHERE login = $1 AND password = $2"
-	if admin {
-		sqlQuery += " AND admin = true"
-	}
-
-	err := Conn.QueryRow(sqlQuery, user, pass).Scan(&id)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
 func GetActorByID(id int) (structs.Actor, error) {
 	q := Conn.QueryRow("SELECT * FROM actors WHERE id = $1", id)
 	var actor structs.Actor
@@ -81,6 +59,9 @@ func GetActorByID(id int) (structs.Actor, error) {
 	if err != nil {
 		return structs.Actor{}, err
 	}
+
+	defer rows.Close()
+
 	for rows.Next() {
 		var filmID int
 		err = rows.Scan(&filmID)
@@ -105,6 +86,9 @@ func GetFilmByID(id int) (structs.Film, error) {
 	if err != nil {
 		return structs.Film{}, err
 	}
+
+	defer rows.Close()
+
 	for rows.Next() {
 		var actorID int
 		err = rows.Scan(&actorID)
