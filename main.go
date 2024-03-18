@@ -1,10 +1,9 @@
 package main
 
 import (
-	"FilmCollection/config"
 	"FilmCollection/handlers"
-	"fmt"
 	"log"
+	"log/slog"
 	"net/http"
 	"os"
 )
@@ -13,7 +12,15 @@ import (
 // @version 1.0
 // @description This is a simple API for a film collection
 func main() {
-	file, err := os.OpenFile("app.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	// check if the logs directory exists
+	if _, err := os.Stat("logs"); os.IsNotExist(err) {
+		err := os.Mkdir("logs", 0755)
+		if err != nil {
+			log.Fatal("Failed to create logs directory:", err)
+		}
+	}
+
+	file, err := os.OpenFile("logs/app.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 	if err != nil {
 		log.Fatal("Failed to open log file:", err)
 	}
@@ -21,9 +28,9 @@ func main() {
 
 	mux := http.NewServeMux()
 
-	fmt.Println("Все подключилось!")
-
 	handlers.InitHandlers(mux)
 
-	err = http.ListenAndServe(fmt.Sprintf("%s:%d", config.Server.Host, config.Server.Port), mux)
+	hostPort := ":" + os.Getenv("SERVER_PORT")
+	slog.Info("Server started at " + hostPort)
+	panic(http.ListenAndServe(hostPort, mux))
 }

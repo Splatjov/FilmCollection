@@ -1,0 +1,35 @@
+services:
+  web:
+    build: .
+    ports:
+      - "3000:${SERVER_PORT}"
+    depends_on:
+      - db
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_HOST: ${POSTGRES_HOST}
+      POSTGRES_INSIDE_PORT: ${POSTGRES_INSIDE_PORT}
+      POSTGRES_OUTSIDE_PORT: ${POSTGRES_OUTSIDE_PORT}
+      SERVER_PORT: ${SERVER_PORT}
+    volumes:
+      - ./logs:/root/logs
+
+  db:
+    image: postgres:latest
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+        - "127.0.0.1:${POSTGRES_OUTSIDE_PORT}:${POSTGRES_INSIDE_PORT}"
+    environment:
+        POSTGRES_USER: ${POSTGRES_USER}
+        POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+        POSTGRES_DB: ${POSTGRES_DB}
+        POSTGRES_HOST: ${POSTGRES_HOST}
+        POSTGRES_INSIDE_PORT: ${POSTGRES_INSIDE_PORT}
+        POSTGRES_OUTSIDE_PORT: ${POSTGRES_OUTSIDE_PORT}
+        SERVER_PORT: ${SERVER_PORT}
+
+volumes:
+  pgdata:
